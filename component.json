@@ -1,0 +1,12 @@
+{
+	"name": "Backbone/React/Require Starter",
+	"version": "1.0.0",
+	"dependencies": {
+		"backbone": null,
+		"react.backbone": null,
+		"react": null,
+		"jquery": null,
+		"underscore": null,
+		"requirejs": null
+	}
+}

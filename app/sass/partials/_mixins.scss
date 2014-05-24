@@ -1,0 +1,47 @@
+//=============================================================================
+// Mixins
+//=============================================================================
+@mixin lighten-gradient($color) {
+    background-color: $color;
+    @include background(linear-gradient(bottom, $color 0%, lighten($color, 5%) 100%));
+}
+
+//=====================================
+// Box-sizing Mixin (IE 8+ border-box)
+//=====================================
+@mixin bs($bs-type: border-box) {
+	-webkit-box-sizing: $bs-type;
+	-moz-box-sizing: $bs-type;
+	box-sizing: $bs-type;
+}
+
+//=====================================
+// Media Query Mixin 
+//=====================================
+$XS: 20em; //  320px
+ $S: 30em; //  480px
+ $M: 48em; //  768px
+ $L: 64em; // 1024px
+$XL: 80em; // 1280px
+
+@mixin MQ($canvas) {
+	@if $canvas == XSplus {
+		@media only screen and (min-width: $XS) { @content; }
+	}
+    
+	@else if $canvas == S {
+		@media only screen and (min-width: $S) { @content; }
+	}
+    
+	@else if $canvas == M {
+		@media only screen and (min-width: $M) { @content; }
+	}
+    
+	@else if $canvas == L {
+		@media only screen and (min-width: $L) { @content; }
+	}
+    
+	@else if $canvas == XL {
+		@media only screen and (min-width: $XL) { @content; }
+	}
+}
