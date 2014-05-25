@@ -6,6 +6,7 @@ require([
 ], function(models, facebook, library, List) {
   'use strict';
 
+
   var doPlaylistForAlbum = function() {
 
     // playlist test
@@ -20,25 +21,21 @@ require([
     .playlists.snapshot()
     .done(function(playlistMeta) {
       var urls = playlistMeta._uris;
-      for (var i = 0; i < urls.length; i++) {
-        if(urls[i]) {
-          var playlist = models.Playlist.fromURI(urls[i]);
+      console.log(urls.length);
 
-          if(!playlist.tracks) return; 
-          playlist.tracks.snapshot().done(function(playlists) {
-            var pURIs = playlists._uris;
+      for(var i = 0; i < urls.length; i++ ) {
+        if(!urls[i]) { return; } 
 
-            for (var i = 0; i < pURIs.length; i++) {
-              var trackURI = pURIs[i];
-              if(!tracks.identifier[trackURI]) {
-                tracks.identifier[trackURI] = true;
-                tracks.set.push(trackURI);
-              }
-            }
-          });
-        }
+        var playlist = models.Playlist.fromURI(urls[i]);
+        playlist.load('tracks', 'name').done(function(a) {
+          console.log(a);
+        });
       }
     });
+
+    // window.setTimeout(function() {
+    //   console.log(window.ctracks);
+    // }, 1000);
 
     // facebook test
     var session = new facebook.FacebookSession();
@@ -46,16 +43,18 @@ require([
     session.friends.snapshot().done(function( data ) {
       var friends = data._uris;
       for ( var i = 0; i < friends.length; i++ ) {
-
-
-        var tracks = { 
+        var tracks = {
           identifier: {},
           set: []
         };
 
         var friend = friends[i];
-        var test = facebook.FacebookUser;
-          console.log(facebook.FacebookUser._requestMetadata());
+
+        facebook.FacebookUser.fromId(friend).load('id', 'user', 'image', 'name').done(function(data) {
+          if(data.user) { 
+            //  console.log(data.user);
+          }
+        });
       }
     });
 
