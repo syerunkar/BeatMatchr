@@ -6,60 +6,86 @@ require([
 ], function(models, facebook, library, List) {
   'use strict';
 
+  var fetchTracksFromPlaylists = function(playlist, fn) {
+    playlist.snapshot()
+    .done(function(snapshot) {
+      var tempuris = snapshot._uris;
+      snapshot._uris = [];
+      for (var i = 0; i < tempuris.length; i++) {
+        if(tempuris[i]) { snapshot._uris.push(tempuris[i]) }
+      };
+
+      snapshot.loadAll('tracks').done(function(a) {
+        var promises = a.map(function(entry) { return entry.tracks.snapshot(); });
+        var snaps = [];
+        models.Promise.join(promises)
+          .each(function(k) {
+            snaps = snaps.concat(k._uris);
+          })
+          .done(function(k) {
+            fn(snaps);
+          });
+      });
+    });
+  }
+
+  var fetchCurrentTracks = function(fn) {
+    var currentUserPlaylist = library.Library.forCurrentUser().playlists;
+    fetchTracksFromPlaylists( currentUserPlaylist, fn);
+  };
+
+  var fetchSpotifyFBFriends = function(fn) {
+    var session = new facebook.FacebookSession();
+    session.friends.snapshot().done(function( data ) {
+
+      var promises = data._uris.map(function(uid) {
+        return facebook.FacebookUser.fromId(uid).load('user','name');
+      });
+      var spotFriends = [];
+
+      models.Promise.join(promises)
+        .each(function(k) {
+          if(k.user){ spotFriends.push(library.Library.forUser(k.user)); }
+        })
+        .always(function(k) {
+          fn(spotFriends);
+        });
+    });
+  };
+
+  var fetchAllFriendsTracks = function(fn) {
+    fetchSpotifyFBFriends(function(spotFriends) {
+
+      spotFriends.forEach(function(a) {
+        var pl = models.Playlist.fromURI(a.starred);
+        pl.load('tracks').done(function(trackList) {
+            trackList.tracks.snapshot().done(function(snapshot) {
+              if(snapshot.length) { fn(snapshot._uris, a); }
+            });
+        });
+      });
+    });
+  }
 
   var doPlaylistForAlbum = function() {
 
-    // playlist test
+    fetchCurrentTracks(function(snaps) {
+      var counts = [];
+      fetchAllFriendsTracks(function(friendSongs, friend) {
 
-    var tracks = {
-      identifier: {},
-      set: []
-    };
-
-    library.Library
-    .forCurrentUser()
-    .playlists.snapshot()
-    .done(function(playlistMeta) {
-      var urls = playlistMeta._uris;
-      console.log(urls.length);
-
-      for(var i = 0; i < urls.length; i++ ) {
-        if(!urls[i]) { return; } 
-
-        var playlist = models.Playlist.fromURI(urls[i]);
-        playlist.load('tracks', 'name').done(function(a) {
-          console.log(a);
-        });
-      }
-    });
-
-    // window.setTimeout(function() {
-    //   console.log(window.ctracks);
-    // }, 1000);
-
-    // facebook test
-    var session = new facebook.FacebookSession();
-
-    session.friends.snapshot().done(function( data ) {
-      var friends = data._uris;
-      for ( var i = 0; i < friends.length; i++ ) {
-        var tracks = {
-          identifier: {},
-          set: []
-        };
-
-        var friend = friends[i];
-
-        facebook.FacebookUser.fromId(friend).load('id', 'user', 'image', 'name').done(function(data) {
-          if(data.user) { 
-            //  console.log(data.user);
+        var count = 0;
+        friendSongs.forEach(function(song) {
+          if(snaps.indexOf(song) > -1) {
+            count++;
           }
         });
-      }
+        counts.push({ name: friend.owner.name, count: count });
+
+        console.log(counts.sort(function(a,b) {
+          return b.count-a.count;
+        }));
+      });
     });
-
-
-
 
 
     var album = models.Album.fromURI('spotify:album:5rCCCernTo6IwFwEZM4H53');
